@@ -1,17 +1,4 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-
 export default function TopNav() {
-  const router = useRouter()
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
   return (
     <header className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-7 py-5 pointer-events-none">
       <div className="flex items-center gap-2.5 pointer-events-auto select-none">
@@ -27,8 +14,8 @@ export default function TopNav() {
       </div>
 
       <div className="pointer-events-auto">
-        <button
-          onClick={handleLogout}
+        <a
+          href="/api/auth/logout"
           title="Cerrar sesión"
           className="w-8 h-8 rounded-lg flex items-center justify-center text-[#F0EEE9]/25 hover:text-[#F0EEE9]/65 hover:bg-white/5 transition-colors"
         >
@@ -37,7 +24,7 @@ export default function TopNav() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-        </button>
+        </a>
       </div>
     </header>
   )

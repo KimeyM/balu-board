@@ -1,48 +1,20 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
 
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const isPublic = pathname.startsWith('/login') || pathname.startsWith('/auth')
+  const isPublic = pathname.startsWith('/login') || pathname.startsWith('/api/auth')
 
-  if (isPublic) return response
+  if (isPublic) return NextResponse.next()
 
-  if (!user) {
+  const session = request.cookies.get('balu-session')?.value
+  const password = process.env.BOARD_PASSWORD
+
+  if (!password || session !== password) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  const ownerEmail = process.env.OWNER_EMAIL
-  if (ownerEmail && user.email !== ownerEmail) {
-    return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
-  }
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {

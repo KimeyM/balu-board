@@ -1,9 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { fetchItems } from '@/lib/db'
-import { createClient } from '@/lib/supabase/client'
 import { type LocalItem } from './Board'
 import ItemModal from './ItemModal'
 
@@ -56,7 +54,6 @@ export default function MobileView() {
   const [items, setItems] = useState<LocalItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
-  const router = useRouter()
 
   const activeItem = items.find(i => i.id === activeItemId) ?? null
 
@@ -85,11 +82,6 @@ export default function MobileView() {
     setItems(prev => prev.map(item => item.id === id ? { ...item, ...patch } : item))
   }, [])
 
-  const handleLogout = async () => {
-    await createClient().auth.signOut()
-    router.push('/login')
-  }
-
   return (
     <div
       className="min-h-screen"
@@ -111,8 +103,8 @@ export default function MobileView() {
             Balu Board
           </span>
         </div>
-        <button
-          onClick={handleLogout}
+        <a
+          href="/api/auth/logout"
           className="w-8 h-8 rounded-lg flex items-center justify-center text-[#F0EEE9]/25 hover:text-[#F0EEE9]/65 transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +112,7 @@ export default function MobileView() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-        </button>
+        </a>
       </header>
 
       {/* Lista */}

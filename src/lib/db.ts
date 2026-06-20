@@ -1,6 +1,4 @@
-import { createClient } from './supabase/client'
-
-const supabase = createClient()
+import { supabase } from './supabase'
 
 const BOARD_ID = '00000000-0000-0000-0000-000000000001'
 
