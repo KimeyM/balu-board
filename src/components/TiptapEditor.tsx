@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import { Color } from '@tiptap/extension-color'
-import { TextStyle } from '@tiptap/extension-text-style'
+import { TextStyle, FontSize } from '@tiptap/extension-text-style'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import TaskList from '@tiptap/extension-task-list'
@@ -15,8 +15,12 @@ import { uploadImage } from '@/lib/db'
 type Props = {
   itemId: string
   initialContent: object | null
+  accentColor: string
   onChange: (json: object) => void
 }
+
+// Tamaño del texto: normal (default ~14px) vs modo título (+2pt)
+const TITLE_SIZE = '1.05rem'
 
 const TEXT_COLORS = [
   { label: 'Default',  value: '' },
@@ -29,13 +33,14 @@ const TEXT_COLORS = [
 ]
 
 
-export default function TiptapEditor({ initialContent, onChange }: Props) {
+export default function TiptapEditor({ initialContent, accentColor, onChange }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
       TextStyle,
       Color,
+      FontSize,
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } }),
       Image.configure({ inline: false, allowBase64: true }),
@@ -84,6 +89,12 @@ export default function TiptapEditor({ initialContent, onChange }: Props) {
   }
 
   const currentColor = editor.getAttributes('textStyle').color as string | undefined
+  const isTitle = editor.getAttributes('textStyle').fontSize === TITLE_SIZE
+
+  const toggleTitle = () => {
+    if (isTitle) editor.chain().focus().unsetFontSize().run()
+    else editor.chain().focus().setFontSize(TITLE_SIZE).run()
+  }
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
@@ -99,6 +110,7 @@ export default function TiptapEditor({ initialContent, onChange }: Props) {
         <Btn active={editor.isActive('italic')}    onClick={() => editor.chain().focus().toggleItalic().run()}    title="Cursiva (Ctrl+I)" className="italic">I</Btn>
         <Btn active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Subrayado (Ctrl+U)" className="underline">U</Btn>
         <Btn active={editor.isActive('strike')}    onClick={() => editor.chain().focus().toggleStrike().run()}    title="Tachado" className="line-through">S</Btn>
+        <Btn active={isTitle}                      onClick={toggleTitle}                                          title="Modo título (texto más grande)"><span className="text-[15px] font-semibold leading-none">A</span></Btn>
 
         <Sep />
 
@@ -112,6 +124,14 @@ export default function TiptapEditor({ initialContent, onChange }: Props) {
             <span className="w-4 h-1 rounded-sm" style={{ backgroundColor: currentColor ?? '#e4e4e7' }} />
           </button>
           <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col rounded-xl shadow-xl p-1.5 z-20 min-w-[110px]" style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => editor.chain().focus().setColor(accentColor).run()}
+              className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
+            >
+              <span className="w-3 h-3 rounded-full shrink-0 border border-zinc-600" style={{ backgroundColor: accentColor }} />
+              <span className="text-zinc-300">Color de la card</span>
+            </button>
+            <div className="h-px my-1 mx-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
             {TEXT_COLORS.map(c => (
               <button
                 key={c.value || 'default'}

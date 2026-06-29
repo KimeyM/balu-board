@@ -5,6 +5,9 @@ import { Rnd } from 'react-rnd'
 import BoardItem from './BoardItem'
 import AddItemButton from './AddItemButton'
 import ItemModal from './ItemModal'
+import Pomodoro from './Pomodoro'
+import Shortcuts from './Shortcuts'
+import Agenda from './Agenda'
 import { fetchItems, insertItem, deleteItem, patchItem } from '@/lib/db'
 
 export type LocalItem = {
@@ -147,7 +150,12 @@ export default function Board() {
         </Rnd>
       ))}
 
-      <AddItemButton onAdd={addItem} />
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-end gap-2">
+        <Agenda />
+        <Shortcuts />
+        <Pomodoro />
+        <AddItemButton onAdd={addItem} />
+      </div>
 
       {activeItem && (
         <ItemModal

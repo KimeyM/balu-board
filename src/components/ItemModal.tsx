@@ -141,6 +141,7 @@ export default function ItemModal({ item, onClose, onUpdate }: Props) {
             key={item.id}
             itemId={item.id}
             initialContent={item.content}
+            accentColor={item.color}
             onChange={handleContentChange}
           />
         </div>

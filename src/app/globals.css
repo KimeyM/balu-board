@@ -30,7 +30,6 @@
 .ProseMirror s { text-decoration: line-through; }
 .ProseMirror a { color: #818cf8; text-decoration: underline; cursor: pointer; }
 .ProseMirror a:hover { color: #a5b4fc; }
-.ProseMirror ul { list-style: disc; padding-left: 1.4rem; margin: 0.25rem 0; }
 .ProseMirror ol { list-style: decimal; padding-left: 1.4rem; margin: 0.25rem 0; }
 .ProseMirror li { margin: 0.1rem 0; }
 .ProseMirror mark { border-radius: 2px; padding: 0 2px; }
@@ -39,6 +38,35 @@
 .ProseMirror code { font-family: monospace; font-size: 0.82em; background: #27272a; padding: 0.1em 0.35em; border-radius: 3px; }
 .ProseMirror pre code { background: transparent; padding: 0; font-size: 0.85em; }
 .ProseMirror blockquote { border-left: 3px solid #52525b; padding-left: 1rem; color: #a1a1aa; margin: 0.4rem 0; }
+
+/* ── Bullet personalizado (tijera) para listas ── */
+:root {
+  --svg-bullet: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M16,2C8.8,2,3,7.8,3,14.8v5.7c0,1.9,1.5,3.4,3.4,3.4C7,23.9,8,24.2,8,25v3c0,0.4,0.3,0.8,0.7,1c2.4,0.8,4.9,1.2,7.3,1.2%20s4.9-0.4,7.3-1.2c0.4-0.1,0.7-0.5,0.7-1v-3c0-0.8,1-1.1,1.6-1.1c1.9,0,3.4-1.5,3.4-3.4v-5.7C29,7.8,23.2,2,16,2z%20M12.3,21.7%20l-1.2,0.2c-0.2,0-0.4,0.1-0.7,0.1c-0.8,0-1.5-0.3-2.2-0.8C7.5,20.6,7,19.6,7,18.6v-0.2c0-1.9,1.5-3.4,3.4-3.4h1.2%20c1.1,0,2,0.5,2.7,1.3c0.6,0.8,0.9,1.9,0.6,2.9C14.6,20.5,13.5,21.4,12.3,21.7z%20M17.4,23.9C17.3,24,17.2,24,17,24%20c-0.4,0-0.7-0.2-0.9-0.6L16,23.2l-0.1,0.2c-0.2,0.5-0.8,0.7-1.3,0.4c-0.5-0.2-0.7-0.8-0.4-1.3l1-2c0.3-0.7,1.4-0.7,1.8,0l1,2%20C18.1,23,17.9,23.6,17.4,23.9z%20M25,18.6c0,1-0.5,2-1.2,2.6c-0.6,0.5-1.4,0.8-2.2,0.8c-0.2,0-0.4,0-0.7-0.1l-1.2-0.2%20c-1.3-0.3-2.3-1.2-2.6-2.5c-0.3-1,0-2.1,0.6-2.9c0.6-0.8,1.6-1.3,2.7-1.3h1.2c1.9,0,3.4,1.5,3.4,3.4V18.6z'/%3E%3C/svg%3E");
+}
+.svg-bullet,
+.ProseMirror ul:not([data-type="taskList"]) {
+  list-style: none;
+  padding-left: 1.9rem;
+  margin: 0.25rem 0;
+}
+.svg-bullet > li,
+.ProseMirror ul:not([data-type="taskList"]) > li {
+  position: relative;
+}
+.svg-bullet > li::before,
+.ProseMirror ul:not([data-type="taskList"]) > li::before {
+  content: "";
+  position: absolute;
+  left: -1.5em;
+  top: 0.8em;
+  transform: translateY(-50%);
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  -webkit-mask: var(--svg-bullet) center / contain no-repeat;
+  mask: var(--svg-bullet) center / contain no-repeat;
+  opacity: 0.85;
+}
 
 /* Task list */
 .ProseMirror ul[data-type="taskList"] {
@@ -68,6 +96,20 @@
 }
 .ProseMirror ul[data-type="taskList"] li > div {
   flex: 1 1 auto;
+}
+
+/* ── Panel / Modal animations ───────────────────────────── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.panel-slide-in {
+  animation: slideInRight 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ── Modal animations ────────────────────────────────────── */

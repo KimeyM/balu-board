@@ -6,7 +6,7 @@ type Props = {
 
 export default function AddItemButton({ onAdd }: Props) {
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
+    <div>
       <button
         onClick={() => onAdd()}
         title="Nueva nota"

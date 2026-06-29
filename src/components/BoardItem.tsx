@@ -10,67 +10,165 @@ type Props = {
   isDragging?: boolean
 }
 
-type Segment = { text: string; color?: string }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function walkNode(node: any, segments: Segment[]): string | null {
-  if (node.type === 'image') return node.attrs?.src ?? null
-
-  if (node.type === 'text') {
-    const color = node.marks
-      ?.find((m: { type: string; attrs?: { color?: string } }) => m.type === 'textStyle')
-      ?.attrs?.color as string | undefined
-    segments.push({ text: node.text ?? '', color })
-    return null
-  }
-
-  if (!node.content) return null
-
-  const isBlock = ['paragraph', 'heading', 'listItem', 'taskItem', 'blockquote'].includes(node.type)
-  let firstImage: string | null = null
-
-  for (const child of node.content) {
-    const img = walkNode(child, segments)
-    if (!firstImage && img) firstImage = img
-  }
-
-  if (isBlock) segments.push({ text: '\n' })
-
-  return firstImage
+type TNode = {
+  type: string
+  text?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attrs?: Record<string, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  marks?: { type: string; attrs?: Record<string, any> }[]
+  content?: TNode[]
 }
 
-function renderSegments(segments: Segment[]) {
-  return segments.map((seg, i) => {
-    if (seg.text === '\n') return <br key={i} />
-    return seg.color
-      ? <span key={i} style={{ color: seg.color }}>{seg.text}</span>
-      : <span key={i}>{seg.text}</span>
+// ── Estilo a partir de los marks de Tiptap ───────────────────
+function markStyle(marks?: TNode['marks']): React.CSSProperties {
+  const style: React.CSSProperties = {}
+  const deco: string[] = []
+
+  for (const m of marks ?? []) {
+    switch (m.type) {
+      case 'bold':      style.fontWeight = 700; break
+      case 'italic':    style.fontStyle = 'italic'; break
+      case 'underline': deco.push('underline'); break
+      case 'strike':    deco.push('line-through'); break
+      case 'textStyle':
+        if (m.attrs?.color) style.color = m.attrs.color
+        if (m.attrs?.fontSize) style.fontSize = m.attrs.fontSize
+        break
+      case 'highlight':
+        style.backgroundColor = m.attrs?.color ?? 'rgba(234,179,8,0.4)'
+        style.color = '#0A0A0A'
+        style.borderRadius = '2px'
+        style.padding = '0 2px'
+        break
+      case 'code':
+        style.fontFamily = 'monospace'
+        style.fontSize = '0.85em'
+        style.background = 'rgba(255,255,255,0.08)'
+        style.padding = '1px 4px'
+        style.borderRadius = '3px'
+        break
+      case 'link':
+        style.color = '#7CB7D9'
+        deco.push('underline')
+        break
+    }
+  }
+  if (deco.length) style.textDecoration = deco.join(' ')
+  return style
+}
+
+// ── Render inline (text / saltos) ────────────────────────────
+function renderInline(nodes: TNode[] | undefined, keyPrefix: string): React.ReactNode[] {
+  if (!nodes) return []
+  return nodes.flatMap((n, i) => {
+    const key = `${keyPrefix}-${i}`
+    if (n.type === 'text') {
+      return [<span key={key} className="whitespace-pre-wrap" style={markStyle(n.marks)}>{n.text}</span>]
+    }
+    if (n.type === 'hardBreak') return [<br key={key} />]
+    return []
   })
 }
 
-function parseContent(content: object | null): { segments: Segment[]; firstImage: string | null } {
-  if (!content) return { segments: [], firstImage: null }
+// ── Render de bloques (fiel a la estructura del documento) ────
+function renderBlocks(nodes: TNode[] | undefined, keyPrefix: string): React.ReactNode[] {
+  if (!nodes) return []
 
-  const doc = content as { content?: object[] }
-  const segments: Segment[] = []
+  return nodes.map((node, i) => {
+    const key = `${keyPrefix}-${i}`
+
+    switch (node.type) {
+      case 'paragraph': {
+        const inline = renderInline(node.content, key)
+        if (inline.length === 0) return null
+        return <p key={key} className="mb-1 last:mb-0 leading-snug">{inline}</p>
+      }
+      case 'heading': {
+        const level = (node.attrs?.level ?? 1) as number
+        const cls = level <= 1
+          ? 'text-base font-bold'
+          : level === 2 ? 'text-[15px] font-bold' : 'text-sm font-semibold'
+        return <p key={key} className={`mb-1 last:mb-0 leading-snug ${cls}`}>{renderInline(node.content, key)}</p>
+      }
+      case 'bulletList':
+        return <ul key={key} className="svg-bullet mb-1 last:mb-0">{renderBlocks(node.content, key)}</ul>
+      case 'orderedList':
+        return <ol key={key} className="list-decimal pl-4 mb-1 last:mb-0">{renderBlocks(node.content, key)}</ol>
+      case 'listItem':
+        return <li key={key} className="leading-snug">{renderBlocks(node.content, key)}</li>
+      case 'taskList':
+        return <ul key={key} className="mb-1 last:mb-0">{renderBlocks(node.content, key)}</ul>
+      case 'taskItem':
+        return (
+          <li key={key} className="flex gap-1.5 leading-snug">
+            <span className="shrink-0">{node.attrs?.checked ? '☑' : '☐'}</span>
+            <div className={`min-w-0 ${node.attrs?.checked ? 'line-through opacity-60' : ''}`}>
+              {renderBlocks(node.content, key)}
+            </div>
+          </li>
+        )
+      case 'blockquote':
+        return (
+          <blockquote key={key} className="border-l-2 border-white/20 pl-2 italic mb-1 last:mb-0">
+            {renderBlocks(node.content, key)}
+          </blockquote>
+        )
+      case 'codeBlock':
+        return (
+          <pre key={key} className="font-mono text-[0.8em] bg-white/8 rounded p-1.5 mb-1 last:mb-0 whitespace-pre-wrap wrap-break-word">
+            {renderInline(node.content, key)}
+          </pre>
+        )
+      case 'horizontalRule':
+        return <hr key={key} className="border-white/15 my-1.5" />
+      case 'image':
+        return null // se muestra como portada
+      default:
+        return node.content ? <div key={key}>{renderBlocks(node.content, key)}</div> : null
+    }
+  })
+}
+
+function findFirstImage(node: TNode): string | null {
+  if (node.type === 'image') return node.attrs?.src ?? null
+  for (const child of node.content ?? []) {
+    const img = findFirstImage(child)
+    if (img) return img
+  }
+  return null
+}
+
+function hasText(node: TNode): boolean {
+  if (node.type === 'text') return (node.text ?? '').trim().length > 0
+  return (node.content ?? []).some(hasText)
+}
+
+function parseContent(content: object | null): {
+  blocks: React.ReactNode[]
+  firstImage: string | null
+  hasText: boolean
+} {
+  if (!content) return { blocks: [], firstImage: null, hasText: false }
+
+  const doc = content as TNode
+  const nodes = doc.content ?? []
   let firstImage: string | null = null
-
-  for (const node of doc.content ?? []) {
-    const img = walkNode(node, segments)
-    if (!firstImage && img) firstImage = img
+  for (const node of nodes) {
+    const img = findFirstImage(node)
+    if (img) { firstImage = img; break }
   }
 
-  while (segments.length > 0 && segments[segments.length - 1].text === '\n') {
-    segments.pop()
+  return {
+    blocks: renderBlocks(nodes, 'b'),
+    firstImage,
+    hasText: nodes.some(hasText),
   }
-
-  return { segments, firstImage }
 }
 
 export default function BoardItem({ item, onRemove, onOpenDetail, isDragging = false }: Props) {
   const [hovered, setHovered] = useState(false)
-  const { segments, firstImage } = parseContent(item.content)
-  const hasText = segments.some(s => s.text.trim().length > 0)
+  const { blocks, firstImage, hasText } = parseContent(item.content)
 
   return (
     <div
@@ -141,17 +239,17 @@ export default function BoardItem({ item, onRemove, onOpenDetail, isDragging = f
             </div>
             {hasText && (
               <div className="flex-1 min-h-0 overflow-hidden px-4 py-2">
-                <p className="font-playfair text-[#F0EEE9]/45 text-sm leading-relaxed line-clamp-3">
-                  {renderSegments(segments)}
-                </p>
+                <div className="font-playfair text-[#F0EEE9]/55 text-sm leading-relaxed">
+                  {blocks}
+                </div>
               </div>
             )}
           </div>
         ) : hasText ? (
-          <div className="px-4 pb-4 overflow-hidden" style={{ maxHeight: '100%' }}>
-            <p className="font-playfair text-[#F0EEE9]/45 text-sm leading-relaxed line-clamp-6">
-              {renderSegments(segments)}
-            </p>
+          <div className="h-full overflow-hidden px-4 pb-4">
+            <div className="font-playfair text-[#F0EEE9]/55 text-sm leading-relaxed">
+              {blocks}
+            </div>
           </div>
         ) : (
           <div className="px-4 pb-4">

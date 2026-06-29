@@ -20,10 +20,14 @@ Crear `.env.local` en la raíz:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://<proyecto>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-OWNER_EMAIL=tu@email.com
+BOARD_PASSWORD=<contraseña-de-acceso>
+# Opcional — panel "Agenda" (Google Calendar, solo lectura)
+GOOGLE_CALENDAR_ICS_URL=
 ```
 
-`OWNER_EMAIL` define el único email autorizado para ingresar. El magic link llega a este email; cualquier otro queda bloqueado en el proxy.
+`BOARD_PASSWORD` es la contraseña única de acceso: se valida en `/api/auth` y el proxy bloquea cualquier sesión sin la cookie correspondiente.
+
+`GOOGLE_CALENDAR_ICS_URL` es opcional y habilita el panel **Agenda**, que muestra tus eventos de los próximos 7 días (solo lectura). Obtenela en Google Calendar → Configuración del calendario → **Integrar calendario** → **Dirección secreta en formato iCal** (termina en `/basic.ics`). Sin esta variable, el panel muestra "no configurada".
 
 ### 2. Base de datos
 
